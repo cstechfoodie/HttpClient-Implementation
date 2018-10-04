@@ -1,7 +1,6 @@
 package ca.concordia.httpClient.lib;
 
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -13,14 +12,19 @@ import java.util.List;
 public class Httpc {
 
 	private Socket socket;
-
-	private Enum<HttpMethod> reqMethod;
 	
 	private ClientHttpRequest req;
 
 	private String res;
 
 	private boolean isConnected;
+
+	/**
+	 * @return the isConnected
+	 */
+	public boolean isConnected() {
+		return isConnected;
+	}
 
 	private void connect(String host, int port) {
 		socket = null;
@@ -47,36 +51,40 @@ public class Httpc {
 			// print help -- see on pdf
 			printHelp();
 		}
-		if (cmd.equals("httpc help get")) {
+		else if (cmd.equals("httpc help get")) {
 			// print help -- see on pdf
 			printGetHelp();
 		}
 
-		if (cmd.equals("httpc help post")) {
+		else if (cmd.equals("httpc help post")) {
 			// print help -- see on pdf
 			printPostHelp();
 		}
-		if (!isConnected) {
+		else if (!isConnected && cmd.startsWith("httpc")) {
 			if (args[1].trim().equals("get")) {
 				req = makeGetRequestObject(cmd, args); //fabricate a request based on curl cmd the user provide
+				connect(req.getHost(), req.getPort());
 			}
 			if (args[1].trim().equals("post")) {
 				req = makePostRequestObject(cmd, args); //fabricate a request based on curl cmd the user provide
+				connect(req.getHost(), req.getPort());// now the connection is build, we can call sendAndRecieve function 
 			}
-			connect(req.getHost(), req.getPort());// now the connection is build, we can call sendAndRecieve function 
 		} 
+		else if(!cmd.startsWith("httpc")) {
+			System.out.println(args[0] + " not considered as a valid command");
+		}
 	}
 
 	private void printHelp() {
-
+		System.out.println("In help");
 	}
 
 	private void printGetHelp() {
-
+		System.out.println("In get help");
 	}
 
 	private void printPostHelp() {
-
+		System.out.println("In Post help");
 	}
 	
 	private void sanitizeArgs(String[] args) {
@@ -88,6 +96,7 @@ public class Httpc {
 	private GetRequest makeGetRequestObject(String cmd, String... args) {
 		List<String> argsList= Arrays.asList(args);
 		GetRequest req = new GetRequest();
+		req.setMethod(HttpMethod.GET);
 		if(cmd.contains("-v")) {
 			req.setVerbose(true);
 		}
@@ -111,11 +120,11 @@ public class Httpc {
 			int index1 = url.indexOf("://");
 			int index2 = url.indexOf('/', index1+3);
 			if(index2 <= 0) {
-				req.setHost(url.substring(index1+3));
+				req.setHost(url.substring(index1+3, url.length()-1));
 				req.setURI("/");
 			} else {
 				req.setHost(url.substring(index1+3, index2));
-				req.setURI(url.substring(index2));
+				req.setURI(url.substring(index2, url.length()-1));
 			}
 				
 		}
@@ -146,7 +155,7 @@ public class Httpc {
 				StringBuilder bld = new StringBuilder();
 				String line = null;
 				while((line = in.readLine()) != null) {
-					bld.append(line);
+					bld.append(line + "\r\n");
 				}
 				res = bld.toString();
 			} catch (IOException e) {
@@ -158,7 +167,18 @@ public class Httpc {
 	}
 	
 	public void displayResultInConsole() {
-		System.out.println(sendAndReceive());
+		sendAndReceive();
+		//we have to modify what to print, we could create a response object
+		if(!req.isVerbose()) {
+			// don't show response header
+			int indexOfBody = res.indexOf('{');
+			String body = res.substring(indexOfBody);
+			System.out.println(body);
+		}
+		else {
+			System.out.println(res);
+		}
+		
 	}
 	
 	public void displayResultInFile() {

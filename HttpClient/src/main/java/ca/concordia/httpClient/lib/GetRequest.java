@@ -7,7 +7,7 @@ public class GetRequest extends ClientHttpRequest {
 		//String newline = System.getProperty("line.separator");
 		StringBuilder bld = new StringBuilder();
 		bld.append(this.getMethod().toString() + " " + this.getURI() + " " + this.getVersion() + "\r\n");
-		bld.append("Host: " + this.getHost());
+		bld.append("Host: " + this.getHost() + "\r\n");
 		if(this.getHeaders().size() > 0) {
 			this.getHeaders().forEach((k, v) ->{
 				bld.append(k + ": " + v + "\r\n");
