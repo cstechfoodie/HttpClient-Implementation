@@ -79,6 +79,6 @@ public class PostRequest extends ClientHttpRequest {
 	//check get for detail
 	@Override
 	public String toString() {
-		return "";
+		return "";//http://www.ntu.edu.sg/home/ehchua/programming/webprogramming/http_basics.html
 	}
 }
