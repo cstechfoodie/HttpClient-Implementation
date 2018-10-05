@@ -295,7 +295,15 @@ public class Httpc {
 				StringBuilder bld = new StringBuilder();
 				String line = null;
 				res = new ClientHttpResponse();
+				int lineCount = 0;
 				while ((line = in.readLine()) != null) {
+					lineCount++;
+					if(lineCount == 1) {
+						String[] first = line.split(" ");
+						res.setVersion(first[0]);
+						res.setStatusCode(first[1]);
+						res.setResponseMessage(first[2]);
+					}
 					if(line.trim().length() == 0) {
 						res.setHeader(bld.toString());
 						bld = new StringBuilder();
@@ -303,6 +311,12 @@ public class Httpc {
 					bld.append(line + "\r\n");
 				}
 				res.setBody(bld.toString());
+				String[] headers = res.getHeader().trim().split("\r\n");
+				for(int i = 0; i < headers.length; i++) {
+					String[] pair = headers[i].split(":");
+					if(pair.length == 2)
+						res.getHeaders().put(pair[0].trim(), pair[1].trim());
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
