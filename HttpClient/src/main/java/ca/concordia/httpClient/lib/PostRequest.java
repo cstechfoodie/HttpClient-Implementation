@@ -79,6 +79,21 @@ public class PostRequest extends ClientHttpRequest {
 	//check get for detail
 	@Override
 	public String toString() {
-		return "";//http://www.ntu.edu.sg/home/ehchua/programming/webprogramming/http_basics.html
+		//String newline = System.getProperty("line.separator");
+		StringBuilder bld = new StringBuilder();
+		bld.append(this.getMethod().toString() + " " + this.getURI() + " " + this.getVersion() + "\r\n");
+		bld.append("Host: " + this.getHost() + "\r\n");
+		if(this.getHeaders().size() > 0) {
+			this.getHeaders().forEach((k, v) ->{
+				bld.append(k + ": " + v + "\r\n");
+			});
+		}
+		bld.append("\r\n");			
+		if(hasBody) {
+			bld.append(this.body);
+		} else {
+			bld.append(this.file);
+		}
+		return bld.toString();
 	}
 }

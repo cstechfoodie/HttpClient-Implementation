@@ -2,12 +2,15 @@ package ca.concordia.httpClient.lib;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Scanner;
 
 public class Httpc {
 
@@ -15,9 +18,15 @@ public class Httpc {
 
 	private ClientHttpRequest req;
 
-	private String res;
+	private ClientHttpResponse res;
 
 	private boolean isConnected;
+	
+	private Scanner in;
+	
+	private String helpFile;
+	
+	private boolean isHelpFileCached = false;
 
 	/**
 	 * @return the isConnected
@@ -78,17 +87,71 @@ public class Httpc {
 			System.out.println(args[0] + " not considered as a valid command");
 		}
 	}
+	
+	
 
 	private void printHelp() {
-		System.out.println("In help");
+		try {
+			if(!isHelpFileCached) {
+				in = new Scanner(new File("help.txt"));
+				StringBuilder bld = new StringBuilder();
+				String line; 
+				while (in.hasNextLine() && (line = in.nextLine()) != null) {
+					bld.append(line + "\r\n"); 
+				} 
+				this.helpFile = bld.toString();
+				this.isHelpFileCached = true;				
+			} 
+			int index = helpFile.indexOf("httpc help get");
+			System.out.println(helpFile.substring(0, index));
+			in.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	private void printGetHelp() {
-		System.out.println("In get help");
+		try {
+			if(!isHelpFileCached) {
+				in = new Scanner(new File("help.txt"));
+				StringBuilder bld = new StringBuilder();
+				String line; 
+				while (in.hasNextLine() && (line = in.nextLine()) != null) {
+					bld.append(line + "\r\n"); 
+				} 
+				this.helpFile = bld.toString();
+				this.isHelpFileCached = true;				
+			} 
+			int index1 = helpFile.indexOf("httpc help get");
+			int index2 = helpFile.indexOf("httpc help post");
+			System.out.println(helpFile.substring(index1, index2));
+			in.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	private void printPostHelp() {
-		System.out.println("In Post help");
+		try {
+			if(!isHelpFileCached) {
+				in = new Scanner(new File("help.txt"));
+				StringBuilder bld = new StringBuilder();
+				String line; 
+				while (in.hasNextLine() && (line = in.nextLine()) != null) {
+					bld.append(line + "\r\n"); 
+				} 
+				this.helpFile = bld.toString();
+				this.isHelpFileCached = true;				
+			} 
+			int index = helpFile.indexOf("httpc help post");
+			System.out.println(helpFile.substring(index));
+			in.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	/*
@@ -141,13 +204,80 @@ public class Httpc {
 	private PostRequest makePostRequestObject(String cmd, String... args) {
 		//copy from above, and implement -d and -f
 		PostRequest req = new PostRequest();
+		List<String> argsList = Arrays.asList(args);
+		req.setMethod(HttpMethod.POST);
+		if (cmd.contains("-v")) {
+			req.setVerbose(true);
+		}
+		if (cmd.contains("-h")) {
+			int index = argsList.indexOf("-h");
+			String h = argsList.get(index + 1);
+			String[] headerPairs = h.split("&"); // may throw error
+			for (int i = 0; i < headerPairs.length; i++) {
+				String[] pair = headerPairs[i].split(":");
+				req.getHeaders().put(pair[0].trim(), pair[1].trim());
+			}
+		}
+		if (cmd.contains("://")) {
+			String url = null;
+			for (int i = 0; i < args.length; i++) {
+				if (args[i].contains("://")) {
+					url = args[i];
+					break;
+				}
+			}
+			int index1 = url.indexOf("://");
+			int index2 = url.indexOf('/', index1 + 3);
+			if (index2 <= 0) {
+				req.setHost(url.substring(index1 + 3, url.length() - 1));
+				req.setURI("/");
+			} else {
+				req.setHost(url.substring(index1 + 3, index2));
+				req.setURI(url.substring(index2, url.length() - 1));
+			}
+
+		}
+		if(cmd.contains("-d") && !cmd.contains("-f")) {
+			int index = argsList.indexOf("-d");
+			String bodyArg = argsList.get(index+1);
+			req.setBody(bodyArg.substring(1, bodyArg.length()-1));
+		}
+		else if(!cmd.contains("-d") && cmd.contains("-f")) {
+			int index = argsList.indexOf("-f");
+			String directory = argsList.get(index+1);
+			if(directory.startsWith("'") && directory.endsWith("'")) {
+				directory = "\"" + directory.substring(1, directory.length()-1) + "\"";
+			}
+			StringBuilder bld = new StringBuilder();
+			File file = new File(directory);
+			try {
+				in = new Scanner(file);
+				String line; 
+			    while ((line = in.nextLine()) != null) {
+			    	bld.append(line + "\r\n"); 
+			  	} 
+			    req.setFile(bld.toString());
+			} catch (FileNotFoundException e) {
+				System.out.println("File Not Found");
+				e.printStackTrace();
+			} finally {
+				in.close();
+			}
+				
+		} else {
+			try {
+				throw new Exception();
+			} catch (Exception e) {
+				System.out.println("[-d] and [-f] can't exist at the same time.");
+			}
+		}
 		return req;
 	}
 
 	/*
 	 * after the request object is made, call this method to send the request and receive response as string
 	 */
-	private String sendAndReceive() {
+	private ClientHttpResponse sendAndReceive() {
 		DataOutputStream out = null;
 		BufferedReader in = null;
 		try {
@@ -164,10 +294,15 @@ public class Httpc {
 				out.writeBytes(req.toString());
 				StringBuilder bld = new StringBuilder();
 				String line = null;
+				res = new ClientHttpResponse();
 				while ((line = in.readLine()) != null) {
+					if(line.trim().length() == 0) {
+						res.setHeader(bld.toString());
+						bld = new StringBuilder();
+					}
 					bld.append(line + "\r\n");
 				}
-				res = bld.toString();
+				res.setBody(bld.toString());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -183,14 +318,12 @@ public class Httpc {
 		sendAndReceive();
 		// we have to modify what to print, we could create a response object
 		if (!req.isVerbose()) {
-			// don't show response header
-			int indexOfBody = res.indexOf('{');
-			String body = res.substring(indexOfBody);
-			System.out.println(body);
+			System.out.println(res.getBody());
 		} else {
-			System.out.println(res);
+			System.out.println(res.toString());
 		}
-
+		close();
+		this.isConnected = false;
 	}
 
 	public void displayResultInFile() {

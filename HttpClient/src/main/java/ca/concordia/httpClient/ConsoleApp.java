@@ -15,19 +15,17 @@ public class ConsoleApp
         
         System.out.println("Welcome to use Httpc. Enter 'httpc help' to check usage.");
 		Scanner scanner = new Scanner(System.in);
-		Httpc httpc = null;
+		Httpc httpc = new Httpc();
 		
 		
 		boolean inProcess = true;
 		
 		while(inProcess) {
 //			try {
-				httpc = new Httpc();
 				String cmd = scanner.nextLine().trim();
 				httpc.commandLineParser(cmd);
 				if(httpc.isConnected()) {
 					httpc.displayResultInConsole();					
-					httpc.close();
 				}
 //			} catch (Exception e) {
 //				System.out.println("Error cmd message. Please check 'httpc help'");
