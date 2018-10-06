@@ -21,19 +21,16 @@ public class ConsoleApp
 		boolean inProcess = true;
 		
 		while(inProcess) {
-//			try {
+			try {
 				String cmd = scanner.nextLine().trim();
 				httpc.commandLineParser(cmd);
 				if(httpc.isConnected()) {
-					httpc.displayResultInConsole();					
+					httpc.displayResult();
 				}
-//			} catch (Exception e) {
-//				System.out.println("Error cmd message. Please check 'httpc help'");
-//			}
+			} catch (Exception e) {
+				System.out.println("Error cmd message. Please check 'httpc help'");
+			}
 			
-//			System.out.println("Have more request? (Y/N)");
-//			inProcess = scanner.nextLine().trim().startsWith("Y") ? true : false;
-//			System.out.println();
 		}
 		
 		scanner.close();

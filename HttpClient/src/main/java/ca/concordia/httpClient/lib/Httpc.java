@@ -6,8 +6,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -21,11 +23,13 @@ public class Httpc {
 	private ClientHttpResponse res;
 
 	private boolean isConnected;
-	
+
 	private Scanner in;
-	
+
+	private PrintWriter out;
+
 	private String helpFile;
-	
+
 	private boolean isHelpFileCached = false;
 
 	/**
@@ -47,15 +51,15 @@ public class Httpc {
 		} catch (UnknownHostException e) {
 			System.out.println("Connection Failed with Exception.");
 			e.printStackTrace();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			System.out.println("Connection Failed with Exception.");
 			e.printStackTrace();
 		}
 	}
-	
+
 	/*
-	 * primarily responsible for processing the command line in console
-	 * worked as a controller to dispatch different 
+	 * primarily responsible for processing the command line in console worked as a
+	 * controller to dispatch different
 	 */
 	public void commandLineParser(String cmd) {
 		// if help, print Help
@@ -69,8 +73,7 @@ public class Httpc {
 		} else if (cmd.equals("httpc help get")) {
 			// print help -- see on pdf
 			printGetHelp();
-		}
-		else if (cmd.equals("httpc help post")) {
+		} else if (cmd.equals("httpc help post")) {
 			// print help -- see on pdf
 			printPostHelp();
 		} else if (!isConnected && cmd.startsWith("httpc")) {
@@ -78,30 +81,33 @@ public class Httpc {
 				req = makeGetRequestObject(cmd, args); // fabricate a request based on curl cmd the user provide
 				connect(req.getHost(), req.getPort());
 			}
-			if (args[1].trim().equals("post")) {
+			else if (args[1].trim().equals("post")) {
 				req = makePostRequestObject(cmd, args); // fabricate a request based on curl cmd the user provide
-				connect(req.getHost(), req.getPort());// now the connection is build, we can call sendAndRecieve
-														// function
+				connect(req.getHost(), req.getPort());
+			}
+			else{
+				System.out.println("Invalid Command! please check 'httpc help'");
 			}
 		} else if (!cmd.startsWith("httpc")) {
 			System.out.println(args[0] + " not considered as a valid command");
 		}
+		else {
+			System.out.println("Invalid Command! please check 'httpc help'");
+		}
 	}
-	
-	
 
 	private void printHelp() {
 		try {
-			if(!isHelpFileCached) {
+			if (!isHelpFileCached) {
 				in = new Scanner(new File("help.txt"));
 				StringBuilder bld = new StringBuilder();
-				String line; 
+				String line;
 				while (in.hasNextLine() && (line = in.nextLine()) != null) {
-					bld.append(line + "\r\n"); 
-				} 
+					bld.append(line + "\r\n");
+				}
 				this.helpFile = bld.toString();
-				this.isHelpFileCached = true;				
-			} 
+				this.isHelpFileCached = true;
+			}
 			int index = helpFile.indexOf("httpc help get");
 			System.out.println(helpFile.substring(0, index));
 			in.close();
@@ -113,16 +119,16 @@ public class Httpc {
 
 	private void printGetHelp() {
 		try {
-			if(!isHelpFileCached) {
+			if (!isHelpFileCached) {
 				in = new Scanner(new File("help.txt"));
 				StringBuilder bld = new StringBuilder();
-				String line; 
+				String line;
 				while (in.hasNextLine() && (line = in.nextLine()) != null) {
-					bld.append(line + "\r\n"); 
-				} 
+					bld.append(line + "\r\n");
+				}
 				this.helpFile = bld.toString();
-				this.isHelpFileCached = true;				
-			} 
+				this.isHelpFileCached = true;
+			}
 			int index1 = helpFile.indexOf("httpc help get");
 			int index2 = helpFile.indexOf("httpc help post");
 			System.out.println(helpFile.substring(index1, index2));
@@ -135,16 +141,16 @@ public class Httpc {
 
 	private void printPostHelp() {
 		try {
-			if(!isHelpFileCached) {
+			if (!isHelpFileCached) {
 				in = new Scanner(new File("help.txt"));
 				StringBuilder bld = new StringBuilder();
-				String line; 
+				String line;
 				while (in.hasNextLine() && (line = in.nextLine()) != null) {
-					bld.append(line + "\r\n"); 
-				} 
+					bld.append(line + "\r\n");
+				}
 				this.helpFile = bld.toString();
-				this.isHelpFileCached = true;				
-			} 
+				this.isHelpFileCached = true;
+			}
 			int index = helpFile.indexOf("httpc help post");
 			System.out.println(helpFile.substring(index));
 			in.close();
@@ -198,11 +204,17 @@ public class Httpc {
 			}
 
 		}
+		if (cmd.contains("-o")) {
+			req.setPrintedToFile(true);
+			int index = argsList.indexOf("-o");
+			String txtPath = argsList.get(index + 1);
+			req.setOutputFilePath(txtPath);
+		}
 		return req;
 	}
 
 	private PostRequest makePostRequestObject(String cmd, String... args) {
-		//copy from above, and implement -d and -f
+		// copy from above, and implement -d and -f
 		PostRequest req = new PostRequest();
 		List<String> argsList = Arrays.asList(args);
 		req.setMethod(HttpMethod.POST);
@@ -237,33 +249,36 @@ public class Httpc {
 			}
 
 		}
-		if(cmd.contains("-d") && !cmd.contains("-f")) {
+		if (cmd.contains("-d") && !cmd.contains("-f")) {
 			int index = argsList.indexOf("-d");
-			String bodyArg = argsList.get(index+1);
-			req.setBody(bodyArg.substring(1, bodyArg.length()-1));
-		}
-		else if(!cmd.contains("-d") && cmd.contains("-f")) {
+			String bodyArg = argsList.get(index + 1);
+			String body = bodyArg.substring(1, bodyArg.length() - 1);
+			req.setBody(body);
+			req.getHeaders().put("Content-Length", String.valueOf(body.length()));
+		} else if (!cmd.contains("-d") && cmd.contains("-f")) {
 			int index = argsList.indexOf("-f");
-			String directory = argsList.get(index+1);
-			if(directory.startsWith("'") && directory.endsWith("'")) {
-				directory = "\"" + directory.substring(1, directory.length()-1) + "\"";
+			String directory = argsList.get(index + 1);
+			if (directory.startsWith("'") && directory.endsWith("'")) {
+				directory = "\"" + directory.substring(1, directory.length() - 1) + "\"";
 			}
 			StringBuilder bld = new StringBuilder();
 			File file = new File(directory);
 			try {
 				in = new Scanner(file);
-				String line; 
-			    while ((line = in.nextLine()) != null) {
-			    	bld.append(line + "\r\n"); 
-			  	} 
-			    req.setFile(bld.toString());
+				String line;
+				while ((line = in.nextLine()) != null) {
+					bld.append(line + "\r\n");
+				}
+				String fileContent = bld.toString();
+				req.setFile(fileContent);
+				req.getHeaders().put("Content-Length", String.valueOf(fileContent.length()));
 			} catch (FileNotFoundException e) {
 				System.out.println("File Not Found");
 				e.printStackTrace();
 			} finally {
 				in.close();
 			}
-				
+
 		} else {
 			try {
 				throw new Exception();
@@ -271,11 +286,18 @@ public class Httpc {
 				System.out.println("[-d] and [-f] can't exist at the same time.");
 			}
 		}
+		if (cmd.contains("-o")) {
+			req.setPrintedToFile(true);
+			int index = argsList.indexOf("-o");
+			String txtPath = argsList.get(index + 1);
+			req.setOutputFilePath(txtPath);
+		}
 		return req;
 	}
 
 	/*
-	 * after the request object is made, call this method to send the request and receive response as string
+	 * after the request object is made, call this method to send the request and
+	 * receive response as string
 	 */
 	private ClientHttpResponse sendAndReceive() {
 		DataOutputStream out = null;
@@ -298,13 +320,13 @@ public class Httpc {
 				int lineCount = 0;
 				while ((line = in.readLine()) != null) {
 					lineCount++;
-					if(lineCount == 1) {
+					if (lineCount == 1) {
 						String[] first = line.split(" ");
 						res.setVersion(first[0]);
 						res.setStatusCode(first[1]);
 						res.setResponseMessage(first[2]);
 					}
-					if(line.trim().length() == 0) {
+					if (line.trim().length() == 0) {
 						res.setHeader(bld.toString());
 						bld = new StringBuilder();
 					}
@@ -312,9 +334,9 @@ public class Httpc {
 				}
 				res.setBody(bld.toString());
 				String[] headers = res.getHeader().trim().split("\r\n");
-				for(int i = 0; i < headers.length; i++) {
+				for (int i = 0; i < headers.length; i++) {
 					String[] pair = headers[i].split(":");
-					if(pair.length == 2)
+					if (pair.length == 2)
 						res.getHeaders().put(pair[0].trim(), pair[1].trim());
 				}
 			} catch (IOException e) {
@@ -325,24 +347,38 @@ public class Httpc {
 	}
 
 	/*
-	 * call sendAndRecieve for implementation
-	 * then, process response based on isVerbose
+	 * call sendAndRecieve for implementation then, process response based on
+	 * isVerbose
 	 */
-	public void displayResultInConsole() {
+	public void displayResult() {
 		sendAndReceive();
 		// we have to modify what to print, we could create a response object
-		if (!req.isVerbose()) {
-			System.out.println(res.getBody());
+		if (req.isPrintedToFile()) {
+			try {
+				out = new PrintWriter(new File(req.getOutputFilePath()));
+				if (!req.isVerbose()) {
+					out.println(res.getBody());
+				} else {
+					out.println(res.toString());
+				}
+				out.close();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		} else {
-			System.out.println(res.toString());
+			if (!req.isVerbose()) {
+				System.out.println(res.getBody());
+			} else {
+				System.out.println(res.toString());
+			}
 		}
+
 		close();
 		this.isConnected = false;
 	}
 
-	public void displayResultInFile() {
-		//implement this for extra credits
-	}
+
 
 	public void close() {
 		try {

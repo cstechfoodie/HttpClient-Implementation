@@ -22,7 +22,39 @@ public abstract class ClientHttpRequest {
 	
 	private boolean isVerbose;
 	
+	private boolean isPrintedToFile;
+	
+	private String outputFilePath;
+	
+	/**
+	 * @return the outputFilePath
+	 */
+	public String getOutputFilePath() {
+		return outputFilePath;
+	}
+
+	/**
+	 * @param outputFilePath the outputFilePath to set
+	 */
+	public void setOutputFilePath(String outputFilePath) {
+		this.outputFilePath = outputFilePath;
+	}
+
 	private boolean hasHeaders;
+	/**
+	 * @return the isPrintedToFile
+	 */
+	public boolean isPrintedToFile() {
+		return isPrintedToFile;
+	}
+
+	/**
+	 * @param isPrintedToFile the isPrintedToFile to set
+	 */
+	public void setPrintedToFile(boolean isPrintedToFile) {
+		this.isPrintedToFile = isPrintedToFile;
+	}
+
 	
 	
 	public ClientHttpRequest() {

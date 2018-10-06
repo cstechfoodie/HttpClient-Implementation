@@ -1,0 +1,28 @@
+HTTP/1.0 200 OK
+Connection: keep-alive
+Server: gunicorn/19.9.0
+Date: Sat, 06 Oct 2018 00:23:47 GMT
+Content-Type: application/json
+Content-Length: 333
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+Via: 1.1 vegur
+
+{
+  "args": {}, 
+  "data": "{\"Assignment\":1}", 
+  "files": {}, 
+  "form": {}, 
+  "headers": {
+    "Connection": "close", 
+    "Content-Length": "16", 
+    "Content-Type": "application/json", 
+    "Host": "httpbin.org"
+  }, 
+  "json": {
+    "Assignment": 1
+  }, 
+  "origin": "132.205.229.185", 
+  "url": "http://httpbin.org/post"
+}
+
