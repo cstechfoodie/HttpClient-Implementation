@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
@@ -35,11 +36,11 @@ public class Https {
 		return isConnected;
 	}
 
-	private void processRequest(String reqMsgFirstLine) {
+	private void processRequest(String reqMsgFirstLine) { 
 		String[] args = reqMsgFirstLine.split(" ");
 		sanitizeArgs(args);
 
-		req = new ClientHttpRequest();
+		req = new ClientHttpRequest(); 
 
 		if (args.length == 3 && args[0].equals("GET")) {
 			req.setMethod(HttpMethod.GET);
@@ -79,18 +80,25 @@ public class Https {
 		if (cmd.contains("-d")) {
 			int index = argsList.indexOf("-d");
 			pathToDir = argsList.get(index + 1);
-			File f = new File(pathToDir);
+			File f = new File(pathToDir); 
 			if(!f.exists()) {
-				new File(pathToDir).mkdirs();				
+				//new File(pathToDir).mkdirs();		
+				try {
+	                f.mkdirs();		//adding exception
+	                System.out.println(f.getName() + " has been created.");
+	            } catch (Exception e) {
+	                System.out.println("Could not create resource directory.");
+	                e.printStackTrace();
+	            }
 			}
 		}
-		connect();
+		connect(); 
 	}
 
 	private void connect() {
 		socket = null;
 		try {
-			socket = new ServerSocket(port);
+			socket = new ServerSocket(port);  
 			this.isConnected = true;
 			System.out.println("Server Created Successfully with on "+ port);
 		} catch (Exception e) {
@@ -108,8 +116,8 @@ public class Https {
 			Socket skt = null;
 			try {
 				skt = socket.accept();
-				out = new DataOutputStream(skt.getOutputStream());
-				in = new BufferedReader(new InputStreamReader(skt.getInputStream()));
+				out = new DataOutputStream(skt.getOutputStream());	
+				in = new BufferedReader(new InputStreamReader(skt.getInputStream())); 
 
 			} catch (IOException e) {
 				if (hasDebuggingMessage) {
@@ -118,27 +126,27 @@ public class Https {
 				}
 			}
 
-			if (skt != null && out != null && in != null) {
+			if (skt != null && out != null && in != null) { 
 				try {
 					StringBuilder bld = new StringBuilder();
 					String line = null;
 					int lineCount = 0;
-					while ((line = in.readLine()) != null) {
+					while ((line = in.readLine()) != null) { 
 						lineCount++;
 						if (lineCount == 1) {
 							processRequest(line);
 							break;
 						}
-						 if (line.trim().length() == 0) {
-						 bld = new StringBuilder();
+						 if (line.trim().length() == 0) {   
+						 bld = new StringBuilder();			
 						 continue;
 						 }
 						 bld.append(line + "\r\n");
 					}
-					req.setBody(bld.toString());
+					req.setBody(bld.toString());  
 
 					if (req.getMethod().toString().equals("GET")) {
-						if (req.getURI().length() == 1 && req.getURI().equals("/")) {
+						if (req.getURI().length() == 1 && req.getURI().equals("/")) { 
 
 							File folder = new File(pathToDir);
 							File[] listOfFiles = folder.listFiles();
@@ -150,30 +158,35 @@ public class Https {
 							  }
 							}
 							
-							res = new ClientHttpResponse();
+							res = new ClientHttpResponse(); 
 							res.setBody(bld.toString());
-							out.writeBytes(res.toString());
+							out.writeBytes(res.toString()); 
 							
-						} else {
+						} else { 
 							String fileName = req.getURI().substring(1);
 							File f = new File(pathToDir + "\\" + fileName + ".txt");// C:\Users\ya_hao\Downloads\foo.txt
 																					// .\foo.txt
 							// PrintWriter filewriter = new PrintWriter(f);
 							try {
-								Scanner fileR = new Scanner(f);
+								Scanner fileR = new Scanner(f);		
 								bld = new StringBuilder();
 								while (fileR.hasNextLine() && (line = fileR.nextLine()) != null) {
-									bld.append(line + "\r\n");
+									bld.append(line + "\r\n");		
 								}
-								res = new ClientHttpResponse();
-								res.setBody(bld.toString());
-								out.writeBytes(res.toString());
+								res = new ClientHttpResponse();		
+								res.setBody(bld.toString());		
+								out.writeBytes(res.toString());	
+								fileR.close();					//adding close
 							} catch (Exception e) {
-								res = new ClientHttpResponse();
+								res = new ClientHttpResponse();		
 								res.setStatusCode("404");
 								res.setDescription("File Not Found");
 								res.setBody("Failed to read the file");
 								out.writeBytes(res.toString());	
+								if (hasDebuggingMessage) {		//adding debug message
+									System.out.println("Failed to find file");
+									e.printStackTrace();
+								}
 							}
 						}
 					}
@@ -183,17 +196,25 @@ public class Https {
 						File f = new File(pathToDir + "\\" + fileName + ".txt");// C:\Users\ya_hao\Downloads\foo.txt
 																				// .\foo.txt
 						try {
-							PrintWriter filewriter = new PrintWriter(f);
+							PrintWriter filewriter = new PrintWriter(f); 
 							filewriter.println(req.getBody());
+							
+							filewriter.write(req.getBody()); 	//using write?
+							
 							res = new ClientHttpResponse();
 							res.setBody("Sucessfully create the file");
 							out.writeBytes(res.toString());	
+							filewriter.close();					//adding close
 						} catch (Exception e) {
 							res = new ClientHttpResponse();
 							res.setStatusCode("500");
 							res.setDescription("Internal Server Error");
 							res.setBody("Failed to create the file");
 							out.writeBytes(res.toString());	
+							if (hasDebuggingMessage) {			//adding debug message
+								System.out.println("Failed to create or overwrite the file");
+								e.printStackTrace();
+							}
 						}
 					}
 
